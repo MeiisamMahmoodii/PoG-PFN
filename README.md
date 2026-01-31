@@ -8,7 +8,53 @@ PoG-PFN treats partial causal claims as a **probabilistic prior over causal stru
 
 ## Architecture
 
-![PoG-PFN Architecture](docs/images/architecture.png)
+```mermaid
+graph LR
+    subgraph A["Module A: Dataset Encoder"]
+        A1[Dataset X,T,Y] --> A2[Tokenizer]
+        A2 --> A3[Positional Encoding]
+        A3 --> A4[Transformer Encoder]
+        A4 --> A5[Dataset Embedding + Variable Embeddings]
+    end
+    
+    subgraph B["Module B: Claim Encoder"]
+        B1["Causal Claims<br/>(70% true, 30% false)"] --> B2[Claim Tokenizer]
+        B2 --> B3[Transformer]
+        B3 --> B4[Cross-Attention with Variables]
+        B4 --> B5[Claim Embeddings + Context]
+    end
+    
+    subgraph C["Module C: Graph Posterior"]
+        C1[Variable + Claim + Dataset Embeddings] --> C2[Edge Predictor]
+        C2 --> C3[Acyclicity Constraint]
+        C3 --> C4["Soft Adjacency Matrix<br/>(posterior over graphs)"]
+    end
+    
+    subgraph D["Module D: Identification"]
+        D1[Soft Adjacency + Variables] --> D2[Differentiable d-separation]
+        D2 --> D3[Adjustment Set Distribution + Confidence]
+    end
+    
+    subgraph E["Module E: Effect Estimator"]
+        E1[Data + Adjustment Distribution] --> E2[Outcome Model]
+        E1 --> E3[Propensity Model]
+        E2 --> E4[Doubly Robust Estimator]
+        E3 --> E4
+        E4 --> E5["ATE mean ± std<br/>(with uncertainty)"]
+    end
+    
+    A5 --> B
+    A5 --> C
+    B5 --> C
+    C4 --> D
+    D3 --> E
+    
+    style A fill:#e3f2fd
+    style B fill:#f3e5f5
+    style C fill:#fce4ec
+    style D fill:#fff3e0
+    style E fill:#e0f2f1
+```
 
 ### Architecture Components
 
@@ -21,7 +67,52 @@ PoG-PFN treats partial causal claims as a **probabilistic prior over causal stru
 
 ## Training Data Pipeline
 
-![Data Pipeline](docs/images/data_pipeline.png)
+```mermaid
+flowchart LR
+    subgraph Step1["Step 1: SCM Generation"]
+        S1A["Random DAG<br/>(Erdos-Renyi, Scale-free, Chain)"]
+        S1B["Mechanism Assignment<br/>(Linear Gaussian, Nonlinear)"]
+        S1C["Parameters:<br/>n_vars=10<br/>density=0.2-0.4"]
+        S1A --> S1B --> S1C
+        S1C --> S1D[Ground Truth Causal Graph]
+    end
+    
+    subgraph Step2["Step 2: Data Sampling"]
+        S2A["Sample from SCM:<br/>X ~ f(parents)"]
+        S2B[Treatment Assignment: T]
+        S2C[Outcome Generation: Y]
+        S2A --> S2B --> S2C
+        S2C --> S2D["Dataset<br/>(n=500 samples)"]
+    end
+    
+    subgraph Step3["Step 3: Claim Generation"]
+        S3A[True Graph Structure]
+        S3B["Generate TRUE Claims (70%):<br/>Real edges, confounders, mediators"]
+        S3C["Generate FALSE Claims (30%):<br/>Wrong relationships, fake edges"]
+        S3D["Confidence Scores: 0.5-1.0"]
+        S3A --> S3B
+        S3A --> S3C
+        S3B --> S3D
+        S3C --> S3D
+        S3D --> S3E["Mixed Claim Set<br/>(5 claims/task)"]
+    end
+    
+    subgraph Step4["Step 4: Training Batch"]
+        S4A["Collate:<br/>{X, T, Y, Claims,<br/>True_ATE, True_Graph}"]
+        S4B["Batch Size: 8 tasks"]
+        S4A --> S4B
+        S4B --> S4C[Training Batch Ready]
+    end
+    
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    
+    style Step1 fill:#c8e6c9
+    style Step2 fill:#b2dfdb
+    style Step3 fill:#a5d6a7
+    style Step4 fill:#80cbc4
+```
 
 ### Data Generation Process
 
