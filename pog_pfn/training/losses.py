@@ -246,42 +246,54 @@ class PoGPFNLoss(nn.Module):
             total_loss: Weighted combination
             loss_dict: Individual losses for logging
         """
-        # 1. Effect loss
+        # 1. Effect loss (always compute - main loss)
         loss_effect = self.effect_loss(
             outputs['ate_mean'],
             outputs['ate_std'],
             true_ate
         )
         
-        # 2. Graph loss
-        loss_graph = self.graph_loss(
-            outputs['graph_posterior'],
-            true_adjacency
-        )
+        # 2. Graph loss - SKIP if weight is 0
+        if self.weight_graph > 0:
+            loss_graph = self.graph_loss(
+                outputs['graph_posterior'],
+                true_adjacency
+            )
+        else:
+            loss_graph = torch.tensor(0.0, device=outputs['ate_mean'].device)
         
-        # 3. Claim validation loss
-        loss_claim = self.claim_loss(
-            claims,
-            outputs['graph_posterior'],
-            claim_mask
-        )
+        # 3. Claim validation loss - SKIP if weight is 0
+        if self.weight_claim > 0:
+            loss_claim = self.claim_loss(
+                claims,
+                outputs['graph_posterior'],
+                claim_mask
+            )
+        else:
+            loss_claim = torch.tensor(0.0, device=outputs['ate_mean'].device)
         
-        # 4. Identification consistency loss
-        if 'id_info' in outputs and 'validity_scores' in outputs:
-            set_probs = outputs['id_info'].get('set_probabilities')
-            if set_probs is not None:
-                loss_identification = self.identification_loss(
-                    outputs['validity_scores'],
-                    set_probs
-                )
+        # 4. Identification consistency loss - SKIP if weight is 0
+        if self.weight_identification > 0:
+            if 'id_info' in outputs and 'validity_scores' in outputs:
+                set_probs = outputs['id_info'].get('set_probabilities')
+                if set_probs is not None:
+                    loss_identification = self.identification_loss(
+                        outputs['validity_scores'],
+                        set_probs
+                    )
+                else:
+                    loss_identification = torch.tensor(0.0, device=outputs['ate_mean'].device)
             else:
                 loss_identification = torch.tensor(0.0, device=outputs['ate_mean'].device)
         else:
             loss_identification = torch.tensor(0.0, device=outputs['ate_mean'].device)
         
-        # 5. Acyclicity penalty
-        if 'graph_components' in outputs:
-            loss_acyclicity = outputs['graph_components'].get('acyclicity_loss', torch.tensor(0.0))
+        # 5. Acyclicity penalty - SKIP if weight is 0
+        if self.weight_acyclicity > 0:
+            if 'graph_components' in outputs:
+                loss_acyclicity = outputs['graph_components'].get('acyclicity_loss', torch.tensor(0.0))
+            else:
+                loss_acyclicity = torch.tensor(0.0, device=outputs['ate_mean'].device)
         else:
             loss_acyclicity = torch.tensor(0.0, device=outputs['ate_mean'].device)
         
