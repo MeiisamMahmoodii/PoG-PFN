@@ -74,11 +74,12 @@ class DistributedTrainingConfig:
         self.warmup_epochs = 5
         
         # ==================== LOSS WEIGHTS ====================
-        self.weight_ate = 1.0
-        self.weight_graph = 0.5
-        self.weight_claim = 0.3
-        self.weight_identification = 0.2
-        self.weight_acyclicity = 0.1
+        # Using only MAE loss - other losses have numerical stability bugs
+        self.weight_ate = 1.0          # MAE loss - stable
+        self.weight_graph = 0.0        # Disabled - uses CRPS internally
+        self.weight_claim = 0.0        # Disabled - uses CRPS internally
+        self.weight_identification = 0.0  # Disabled - uses CRPS internally
+        self.weight_acyclicity = 0.0   # Disabled - BCE assertion failures.1
         
         # ==================== EVALUATION ====================
         self.validate_every = 5

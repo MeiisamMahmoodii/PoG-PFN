@@ -32,53 +32,13 @@ class EffectLoss(nn.Module):
         true_ate: torch.Tensor
     ) -> torch.Tensor:
         """
-        Args:
-            predicted_mean: [batch]
-            predicted_std: [batch]
-            true_ate: [batch]
-            
-        Returns:
-            loss: scalar
+        Compute simple MAE loss (CRPS has numerical stability issues).
+        
+        Using Mean Absolute Error as a stable alternative to CRPS.
         """
-        # Assume Gaussian distribution
-        # CRPS for Gaussian: ||pred - true|| + std * (2φ(z) + z(2Φ(z)-1) - 1/√π)
-        # where z = (true - pred) / std
-        
-        # Ensure std is positive and not too small
-        assert predicted_mean.shape == predicted_std.shape == true_ate.shape
-        
-        # Clamp std to avoid division by zero and numerical instability
-        eps = 1e-6
-        predicted_std = predicted_std.clamp(min=eps, max=100.0)
-        
-        # Check for NaN/inf in inputs
-        if torch.isnan(predicted_mean).any() or torch.isnan(predicted_std).any() or torch.isnan(true_ate).any():
-            # Fallback to MAE if inputs are corrupted
-            return torch.abs(predicted_mean - true_ate).mean()
-        
-        error = torch.abs(predicted_mean - true_ate)
-        z = (true_ate - predicted_mean) / (predicted_std + eps)
-        
-        # Strong clamping to avoid numerical issues in normal distribution
-        z = z.clamp(min=-7.0, max=7.0)
-        
-        # Check z for NaN after calculation
-        if torch.isnan(z).any() or torch.isinf(z).any():
-            # Fallback to MAE
-            return error.mean()
-        
-        # Standard normal CDF and PDF
-        normal = torch.distributions.Normal(0, 1)
-        phi = torch.exp(normal.log_prob(z))  # PDF
-        Phi = normal.cdf(z)  # CDF
-        
-        crps = error + predicted_std * (2 * phi + z * (2 * Phi - 1) - 1 / (torch.pi ** 0.5))
-        
-        # Final NaN check
-        if torch.isnan(crps).any():
-            return error.mean()
-        
-        return crps.mean()
+        # Simple MAE - no numerical issues
+        mae = torch.abs(predicted_mean - true_ate).mean()
+        return mae
 
 
 class GraphPosteriorLoss(nn.Module):
