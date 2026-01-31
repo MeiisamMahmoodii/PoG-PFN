@@ -45,13 +45,27 @@ class EffectLoss(nn.Module):
         # where z = (true - pred) / std
         
         # Ensure std is positive and not too small
-        predicted_std = predicted_std.clamp(min=0.01, max=100.0)
+        assert predicted_mean.shape == predicted_std.shape == true_ate.shape
+        
+        # Clamp std to avoid division by zero and numerical instability
+        eps = 1e-6
+        predicted_std = predicted_std.clamp(min=eps, max=100.0)
+        
+        # Check for NaN/inf in inputs
+        if torch.isnan(predicted_mean).any() or torch.isnan(predicted_std).any() or torch.isnan(true_ate).any():
+            # Fallback to MAE if inputs are corrupted
+            return torch.abs(predicted_mean - true_ate).mean()
         
         error = torch.abs(predicted_mean - true_ate)
-        z = (true_ate - predicted_mean) / (predicted_std + 1e-8)
+        z = (true_ate - predicted_mean) / (predicted_std + eps)
         
-        # Clamp z to avoid numerical issues
-        z = z.clamp(min=-10.0, max=10.0)
+        # Strong clamping to avoid numerical issues in normal distribution
+        z = z.clamp(min=-7.0, max=7.0)
+        
+        # Check z for NaN after calculation
+        if torch.isnan(z).any() or torch.isinf(z).any():
+            # Fallback to MAE
+            return error.mean()
         
         # Standard normal CDF and PDF
         normal = torch.distributions.Normal(0, 1)
@@ -59,6 +73,10 @@ class EffectLoss(nn.Module):
         Phi = normal.cdf(z)  # CDF
         
         crps = error + predicted_std * (2 * phi + z * (2 * Phi - 1) - 1 / (torch.pi ** 0.5))
+        
+        # Final NaN check
+        if torch.isnan(crps).any():
+            return error.mean()
         
         return crps.mean()
 
