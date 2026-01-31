@@ -298,7 +298,7 @@ def main():
     
     # Wrap model with DDP
     if is_distributed:
-        model = DDP(model, device_ids=[config.local_rank])
+        model = DDP(model, device_ids=[config.local_rank], find_unused_parameters=True)
     
     if config.rank == 0:
         n_params = sum(p.numel() for p in model.parameters())
