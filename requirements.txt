@@ -1,17 +1,31 @@
+# PoG-PFN Requirements
+# Python 3.10+
+
+# Core Deep Learning
 torch>=2.0.0
 numpy>=1.24.0
-scipy>=1.10.0
-pandas>=2.0.0
-scikit-learn>=1.3.0
+
+# Graph Operations
 networkx>=3.0
-pydot>=1.4.2
-graphviz>=0.20
+scipy>=1.10.0
+
+# Visualization
 matplotlib>=3.7.0
-seaborn>=0.12.0
-plotly>=5.14.0
-pyyaml>=6.0
+
+# Training Utilities
 tqdm>=4.65.0
-wandb>=0.15.0
-jupyter>=1.0.0
-ipykernel>=6.22.0
-pytest>=7.3.0
+
+# Configuration
+pyyaml>=6.0
+
+# Optional: Experiment Tracking
+# wandb>=0.15.0
+
+# Optional: Advanced Plotting
+# seaborn>=0.12.0
+# plotly>=5.14.0
+
+# Development (optional)
+# pytest>=7.3.0
+# black>=23.0.0
+# flake8>=6.0.0
