@@ -1,0 +1,120 @@
+# PoG-PFN Default Configuration
+
+# Model Architecture
+model:
+  n_vars: 20  # Maximum number of variables
+  d_model: 256  # Transformer hidden dimension
+  n_heads: 8  # Number of attention heads
+  n_layers: 6  # Number of transformer layers
+  dropout: 0.1
+  
+  # Dataset Encoder
+  dataset_encoder:
+    max_seq_len: 500  # Maximum number of rows
+    use_positional_encoding: true
+    
+  # Claim Encoder
+  claim_encoder:
+    max_claims: 50  # Maximum number of claims
+    claim_d_model: 128
+    n_claim_layers: 3
+    
+  # Graph Posterior
+  graph_posterior:
+    predict_adjacency: true
+    predict_ancestry: true
+    acyclicity_penalty: 1.0  # NOTEARS constraint weight
+    
+  # Identification Layer
+  identification:
+    max_adjustment_sets: 10  # Top-K candidate adjustment sets
+    soft_logic_temperature: 0.5
+    
+  # Effect Estimator
+  effect_estimator:
+    n_quantiles: 9  # For uncertainty quantification
+    use_doubly_robust: true
+
+# Training
+training:
+  batch_size: 32
+  num_epochs: 100
+  learning_rate: 1e-4
+  weight_decay: 1e-5
+  gradient_clip: 1.0
+  warmup_steps: 1000
+  
+  # Loss Weights
+  loss_weights:
+    ate: 1.0
+    graph: 0.5
+    claim: 0.3
+    identification: 0.2
+    
+  # Optimizer
+  optimizer: adamw
+  scheduler: cosine
+  
+# Data Generation
+data:
+  # SCM Generation
+  scm:
+    n_samples: 1000
+    graph_types:
+      - erdos_renyi
+      - scale_free
+      - chain
+      - fork
+    densities: [0.1, 0.2, 0.3]
+    
+  mechanism_types:
+    - linear_gaussian
+    - nonlinear_additive
+    - monotone
+    - heavy_tailed
+    - heteroskedastic
+    
+  # Claim Generation
+  claims:
+    truthful_ratio: 0.6  # 60% truthful claims
+    false_ratio: 0.2  # 20% false claims
+    unidentifiable_ratio: 0.1  # 10% unidentifiable but consistent
+    conflicting_ratio: 0.1  # 10% conflicting claims
+    
+    relation_types:
+      - causes  # X → Y
+      - forbids  # X ↛ Y
+      - confounder  # Z → X and Z → Y
+      - mediator  # X → Z → Y
+      - instrument  # Z → X, Z ↛ Y
+      - collider  # X → Z ← Y
+      - ancestor  # X ⤳ Y (path exists)
+      - non_ancestor  # X ⤳ Y (no path)
+
+# Evaluation
+evaluation:
+  metrics:
+    - mae  # Mean Absolute Error (when identifiable)
+    - coverage  # Interval coverage
+    - sharpness  # Interval width
+    - calibration  # Reliability diagram
+    - graph_f1  # Graph recovery F1
+    - claim_accuracy  # Claim validation accuracy
+    
+  # Baselines
+  baselines:
+    - doubly_robust
+    - causal_forest
+    - do_pfn
+    - causal_pfn
+    
+# Logging
+logging:
+  use_wandb: false
+  project_name: pog-pfn
+  log_interval: 10
+  save_interval: 1000
+  checkpoint_dir: checkpoints/
+
+# Reproducibility
+seed: 42
