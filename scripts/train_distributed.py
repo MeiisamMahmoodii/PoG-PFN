@@ -42,23 +42,23 @@ class DistributedTrainingConfig:
         self.rank = int(os.environ.get('RANK', 0))
         
         # ==================== DATA CONFIGURATION ====================
-        self.n_vars = 10
+        self.n_vars = 10  # 20 vars causes huge seq_len = 10K
         self.n_train_tasks = 1000  # Will be split across GPUs
         self.n_val_tasks = 200
         self.n_test_tasks = 200
-        self.n_samples_per_task = 500
+        self.n_samples_per_task = 500  # 10 vars × 500 = 5K seq_len (manageable)
         self.n_claims_per_task = 5
         
         # ==================== MODEL CONFIGURATION ====================
         self.d_model = 256
         self.n_heads = 4
-        self.n_layers = 6  # Can increase with more GPUs
+        self.n_layers = 6  # 12 layers is too heavy for this batch size
         self.n_claim_layers = 2
         self.dropout = 0.1
         
         # ==================== TRAINING CONFIGURATION ====================
         self.n_epochs = 50
-        self.batch_size = 8  # Per GPU batch size
+        self.batch_size = 8  # Per GPU batch size (total = 8 × 4 = 32)
         self.learning_rate = 1e-4
         self.weight_decay = 1e-5
         self.grad_clip_norm = 1.0
