@@ -6,7 +6,11 @@ A transformer-based architecture for causal effect estimation that performs amor
 
 PoG-PFN treats partial causal claims as a **probabilistic prior over causal structures**, uses data to compute a **posterior over structures**, then computes effects by **differentiable causal identification**—returning calibrated uncertainty when effects are not identifiable.
 
-## Architecture Components
+## Architecture
+
+![PoG-PFN Architecture](docs/images/architecture.png)
+
+### Architecture Components
 
 1. **PFN Dataset Encoder**: TabPFN-style transformer that encodes datasets and produces variable embeddings
 2. **Claim Encoder**: Processes partial causal knowledge (constraints, relationships) into claim embeddings
@@ -14,6 +18,17 @@ PoG-PFN treats partial causal claims as a **probabilistic prior over causal stru
 4. **Differentiable Identification Layer**: Computes adjustment set distributions via soft d-separation
 5. **Effect Estimator**: Doubly robust ATE estimation with transformer-based nuisance models
 6. **Uncertainty Quantification**: Returns ATE distributions with calibrated intervals
+
+## Training Data Pipeline
+
+![Data Pipeline](docs/images/data_pipeline.png)
+
+### Data Generation Process
+
+1. **SCM Generation**: Random DAG with configurable topology (Erdos-Renyi, Scale-free, Chain)
+2. **Data Sampling**: Sample n=500 observations from structural causal model
+3. **Claim Generation**: Mix 70% true + 30% false claims about relationships
+4. **Training Batch**: Collate {X, T, Y, Claims, Ground Truth} for supervised learning
 
 ## Key Advantages
 
