@@ -51,13 +51,13 @@ class DistributedTrainingConfig:
         
         # ==================== MODEL CONFIGURATION ====================
         self.d_model = 256
-        self.n_heads = 4
-        self.n_layers = 6  # 12 layers is too heavy for this batch size
-        self.n_claim_layers = 2
+        self.n_heads = 8
+        self.n_layers = 8  # 12 layers is too heavy for this batch size
+        self.n_claim_layers = 4
         self.dropout = 0.1
         
         # ==================== TRAINING CONFIGURATION ====================
-        self.n_epochs = 50
+        self.n_epochs = 100
         self.batch_size = 8  # Per GPU batch size (total = 8 × 4 = 32)
         self.learning_rate = 1e-4
         self.weight_decay = 1e-5
@@ -182,6 +182,15 @@ def train_epoch(model, dataloader, optimizer, criterion, device, config, epoch):
         # Forward
         outputs = model(X, T, Y, claims, treatment_idx, outcome_idx)
         
+        # Check for NaNs in outputs
+        if torch.isnan(outputs['ate_mean']).any():
+            print(f"[Rank {config.rank}] CRITICAL: NaN detected in ate_mean at batch {batch_idx}")
+            # Try to catch it early
+            if torch.isnan(X).any() or torch.isnan(T).any() or torch.isnan(Y).any():
+                print(f"[Rank {config.rank}] NaN detected in input data (X/T/Y)")
+            if torch.isnan(true_ate).any():
+                print(f"[Rank {config.rank}] NaN detected in true_ate")
+        
         # Loss
         claim_mask = torch.zeros(len(claims), max(len(c) for c in claims), 
                                 dtype=torch.bool, device=device)
@@ -193,6 +202,12 @@ def train_epoch(model, dataloader, optimizer, criterion, device, config, epoch):
         
         # Backward
         optimizer.zero_grad()
+        
+        if torch.isnan(loss):
+            print(f"[Rank {config.rank}] CRITICAL: Loss is NaN at batch {batch_idx}")
+            # Skip this batch to prevent model corruption
+            continue
+            
         loss.backward()
         
         if config.grad_clip_norm > 0:
