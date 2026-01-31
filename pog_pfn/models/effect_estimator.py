@@ -179,10 +179,16 @@ class EffectEstimator(nn.Module):
             # Average over samples
             ate_mean = ate_individual.mean(dim=1)  # [batch]
             
+            # Final safety check for NaN/Inf
+            ate_mean = torch.where(torch.isfinite(ate_mean), ate_mean, torch.zeros_like(ate_mean))
+        
         else:
             # Simple plug-in estimator (outcome regression)
             ate_individual = mu_1 - mu_0
             ate_mean = ate_individual.mean(dim=1)
+            
+            # Final safety check for NaN/Inf
+            ate_mean = torch.where(torch.isfinite(ate_mean), ate_mean, torch.zeros_like(ate_mean))
         
         # Estimate uncertainty
         ate_std = None

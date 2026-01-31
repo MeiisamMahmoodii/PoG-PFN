@@ -278,6 +278,10 @@ class SCMGenerator:
                     # Apply mechanism
                     parents_values = data[:, parents]
                     data[:, node] = self._apply_mechanism(parents_values, node)
+            
+            # Robust clamping: prevent values from exploding and causing NaNs downstream
+            # Use a large but finite range for stability
+            data[:, node] = np.clip(data[:, node], -1e3, 1e3)
         
         info = {
             'adjacency': self.adjacency,

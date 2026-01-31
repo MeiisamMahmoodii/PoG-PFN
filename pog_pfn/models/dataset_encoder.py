@@ -112,6 +112,9 @@ class DatasetEncoder(nn.Module):
             data = torch.cat([X, y.unsqueeze(-1)], dim=-1)  # [batch, n_samples, n_vars]
         else:
             data = X
+            
+        # Robust input clamping: handle extreme outliers that could cause Transformer NaNs
+        data = torch.clamp(data, min=-1e3, max=1e3)
         
         n_vars = data.shape[-1]
         
