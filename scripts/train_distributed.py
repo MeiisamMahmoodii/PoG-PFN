@@ -147,6 +147,13 @@ def setup_distributed():
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
         local_rank = int(os.environ['LOCAL_RANK'])
         n_gpus = torch.cuda.device_count()
+        
+        # Diagnostic print (visible in the log across ranks)
+        print(f"[Rank {os.environ['RANK']}] Local Rank: {local_rank}, Visible GPUs: {n_gpus}")
+        
+        if n_gpus == 0:
+            raise RuntimeError("No CUDA devices found!")
+            
         # CRITICAL: set_device MUST happen BEFORE init_process_group for NCCL
         # Use modulo to handle cases where processes only see a subset of GPUs
         torch.cuda.set_device(local_rank % n_gpus)
