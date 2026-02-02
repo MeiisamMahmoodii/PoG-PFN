@@ -51,6 +51,8 @@ def main():
     n_heads = 8
     n_layers = 8
     n_claim_layers = 4
+    max_samples = 500
+    max_seq_len = max_samples * n_vars  # Must match training (500 * 10 = 5000)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     save_dir = Path('evaluation_report')
@@ -71,7 +73,8 @@ def main():
         d_model=d_model,
         n_heads=n_heads,
         n_layers=n_layers,
-        n_claim_layers=n_claim_layers
+        n_claim_layers=n_claim_layers,
+        max_seq_len=max_seq_len
     ).to(device)
     model.load_state_dict(torch.load(ckpt_path, map_location=device))
     model.eval()

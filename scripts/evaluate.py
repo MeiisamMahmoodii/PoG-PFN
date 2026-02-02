@@ -219,6 +219,8 @@ def main():
     n_heads = 8
     n_layers = 8
     n_claim_layers = 4
+    max_samples = 500
+    max_seq_len = max_samples * n_vars  # Must match training (500 * 10 = 5000)
     
     # Load model
     print("\nLoading model...")
@@ -227,7 +229,8 @@ def main():
         d_model=d_model,
         n_heads=n_heads,
         n_layers=n_layers,
-        n_claim_layers=n_claim_layers
+        n_claim_layers=n_claim_layers,
+        max_seq_len=max_seq_len
     ).to(device)
     
     ckpt_path = Path('results_distributed/best_model.pt')
