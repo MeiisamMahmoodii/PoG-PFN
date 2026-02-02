@@ -206,10 +206,13 @@ class SCMGenerator:
                 if np.random.rand() < 0.5:
                     # Polynomial
                     degree = np.random.randint(2, 4)
-                    mean_effect += np.polyval(np.random.randn(degree), parents_values[:, i])
+                    # Use smaller, bounded coefficients to prevent explosion
+                    coeffs = np.random.uniform(-0.2, 0.2, size=degree)
+                    mean_effect += np.polyval(coeffs, parents_values[:, i])
                 else:
                     # Sigmoid
-                    mean_effect += np.tanh(parents_values[:, i] * np.random.randn())
+                    weight = np.random.uniform(-0.5, 0.5)
+                    mean_effect += np.tanh(parents_values[:, i] * weight)
             noise = np.random.randn(n_samples) * self.noise_scale
             
         elif self.mechanism_type == MechanismType.MONOTONE:
