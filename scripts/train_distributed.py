@@ -145,11 +145,12 @@ class DistributedTrainingConfig:
 def setup_distributed():
     """Initialize distributed training environment."""
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        dist.init_process_group(backend='nccl')
         local_rank = int(os.environ['LOCAL_RANK'])
         n_gpus = torch.cuda.device_count()
-        # Use modulo to avoid 'invalid device ordinal' if processes only see a subset of GPUs
+        # CRITICAL: set_device MUST happen BEFORE init_process_group for NCCL
+        # Use modulo to handle cases where processes only see a subset of GPUs
         torch.cuda.set_device(local_rank % n_gpus)
+        dist.init_process_group(backend='nccl')
         return True
     return False
 
@@ -318,7 +319,7 @@ def main():
     
     # Wrap model with DDP
     if is_distributed:
-        model = DDP(model, device_ids=[config.local_rank], find_unused_parameters=True)
+        model = DDP(model, device_ids=[config.local_rank % n_gpus], find_unused_parameters=True)
     
     if config.rank == 0:
         n_params = sum(p.numel() for p in model.parameters())
