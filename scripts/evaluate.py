@@ -210,24 +210,37 @@ def main():
     print("PoG-PFN Model Evaluation")
     print("="*60)
     
-    # Configuration
+    # Configuration (matching DistributedTrainingConfig defaults)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"\nDevice: {device}")
     
     n_vars = 10
+    d_model = 256
+    n_heads = 8
+    n_layers = 8
+    n_claim_layers = 4
     
     # Load model
     print("\nLoading model...")
     model = PoGPFN(
         n_vars=n_vars,
-        d_model=256,
-        n_heads=4,
-        n_layers=3,
-        n_claim_layers=2
+        d_model=d_model,
+        n_heads=n_heads,
+        n_layers=n_layers,
+        n_claim_layers=n_claim_layers
     ).to(device)
     
-    model.load_state_dict(torch.load('results/best_model.pt', map_location=device))
-    print("✓ Model loaded successfully")
+    ckpt_path = Path('results_distributed/best_model.pt')
+    if not ckpt_path.exists():
+        # Fallback to local results directory
+        ckpt_path = Path('results/best_model.pt')
+        
+    if not ckpt_path.exists():
+        print(f"❌ Error: Could not find checkpoint at {ckpt_path}")
+        return
+        
+    model.load_state_dict(torch.load(ckpt_path, map_location=device))
+    print(f"✓ Model loaded successfully from {ckpt_path}")
     
     # Create test dataset
     print("\nCreating test dataset...")
