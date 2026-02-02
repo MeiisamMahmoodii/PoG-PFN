@@ -494,16 +494,21 @@ def main():
         print("="*70)
         print("FINAL EVALUATION")
         print("="*70)
-        
-        # Load best model
-        if config.save_checkpoints and (config.save_dir / 'best_model.pt').exists():
-            model_to_load = model.module if is_distributed else model
-            model_to_load.load_state_dict(torch.load(config.save_dir / 'best_model.pt'))
+    
+    # All ranks load the best model for final evaluation
+    if config.save_checkpoints and (config.save_dir / 'best_model.pt').exists():
+        model_to_load = model.module if is_distributed else model
+        # Load weights on all ranks to ensure consistent evaluation
+        state_dict = torch.load(config.save_dir / 'best_model.pt', map_location=device)
+        model_to_load.load_state_dict(state_dict)
+        if config.rank == 0:
             print("Loaded best model\n")
-        
-        final_val = evaluate(model, val_loader, device, config)
-        final_test = evaluate(model, test_loader, device, config)
-        
+    
+    # All ranks MUST participate in collective evaluation
+    final_val = evaluate(model, val_loader, device, config)
+    final_test = evaluate(model, test_loader, device, config)
+    
+    if config.rank == 0:
         print(f"Final Val MAE: {final_val['mae']:.4f}")
         print(f"Final Test MAE: {final_test['mae']:.4f}")
         print(f"Best Val MAE: {best_val_mae:.4f}")
