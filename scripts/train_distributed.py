@@ -146,7 +146,10 @@ def setup_distributed():
     """Initialize distributed training environment."""
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
         dist.init_process_group(backend='nccl')
-        torch.cuda.set_device(int(os.environ['LOCAL_RANK']))
+        local_rank = int(os.environ['LOCAL_RANK'])
+        n_gpus = torch.cuda.device_count()
+        # Use modulo to avoid 'invalid device ordinal' if processes only see a subset of GPUs
+        torch.cuda.set_device(local_rank % n_gpus)
         return True
     return False
 
@@ -288,7 +291,8 @@ def main():
     config.print_config()
     
     # Device setup
-    device = torch.device(f'cuda:{config.local_rank}')
+    n_gpus = torch.cuda.device_count()
+    device = torch.device(f'cuda:{config.local_rank % n_gpus}')
     
     # Set random seeds for reproducibility
     torch.manual_seed(config.train_seed + config.rank)
